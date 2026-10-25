@@ -1,0 +1,13 @@
+# Source screenshots from the review video are not redistributed with this repository.
+*.png
+!charts/*.png
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS
+Thumbs.db
+.DS_Store

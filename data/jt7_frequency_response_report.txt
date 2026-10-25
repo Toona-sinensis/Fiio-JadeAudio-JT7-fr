@@ -1,0 +1,56 @@
+Jade Audio JT7 - frequency response
+
+Source: three screenshots already in this folder
+  屏幕截图 2026-10-25 155329.png  (JT7 vs JM-1/DFR)
+  屏幕截图 2026-10-25 155349.png  (JT7 vs HiFiMAN Edition XS)
+  屏幕截图 2026-10-25 155402.png  (JT7 vs FiiO FT1Pro)
+All three print "Measure by B&K 5128". No other file was used.
+
+These charts show a single JT7 trace each, so this data set is ONE channel.
+There is no left/right split here.
+
+Calibration: plot box 1339x573 px, x = 20 Hz..20 kHz log, y = +25..-25 dB.
+
+Normalised to 0 dB at 1 kHz.
+
+Band averages:
+  20-60 Hz        -0.8
+  60-200 Hz       -0.2
+  200-1000 Hz     -0.1
+  1-2 kHz         +0.8
+  2-4 kHz        +10.5
+  4-8 kHz         +7.4
+  8-16 kHz        +2.7
+
+Key features:
+  20 Hz (sub-bass)         -7.3
+  50 Hz (bass rise)        +1.6
+  1 kHz reference          +0.0
+  Pinna gain peak         +13.0 dB at 3179 Hz
+  Following dip            +2.7 dB at 4833 Hz
+  10 kHz                   +4.2
+  20 kHz                  -19.2
+
+Consistency of the three screenshots:
+  After 1 kHz alignment the traces agree to RMS 0.11 dB (max 0.66 dB).
+  Their absolute 1 kHz level differs by 1.11 dB, which is a placement
+  difference between screenshots, not a difference in the data:
+    -0.98, +0.13, -0.06
+  Coverage: 155329 is complete; 155349 misses part of 3.0-3.4 kHz and a few
+  other short stretches; 155402 has the red trace hidden under the blue FT1Pro
+  curve in several bands (notably 0.13-0.30 kHz, 3.6-4.0 kHz).
+  The average uses every image that covers a given frequency.
+
+Independent check against graph.png (NOT used for this data set):
+     20-  100 Hz   RMS 0.79 dB   bias -0.71 dB
+    100- 1000 Hz   RMS 0.48 dB   bias -0.37 dB
+   1000- 4000 Hz   RMS 0.36 dB   bias +0.14 dB
+   4000-10000 Hz   RMS 1.45 dB   bias -0.54 dB
+  10000-20000 Hz   RMS 2.92 dB   bias +1.88 dB
+Limitations:
+  - These are screenshots of a chart, not measurement files. Expect about
+    +/-0.3 dB from pixel reading in 100 Hz - 8 kHz and rather worse above
+    15 kHz where the trace is steep.
+  - chart offset column is the mean vertical placement of the three
+    screenshots and is not a calibrated playback level.
+  - A single trace means no channel-matching information can be given.
