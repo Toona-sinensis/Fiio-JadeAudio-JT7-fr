@@ -59,21 +59,35 @@ def runs_of(ys, gap=4):
 
 
 def trace_red(name, x0, x1, y0, y1):
-    """Return (frequency, dB) for the red JT7 stroke in one chart."""
-    a = np.array(Image.open(chart_path(name)).convert('RGB')).astype(int)
+    """Return (frequency, dB) for the red JT7 stroke in one chart.
+
+    Two details matter for a smooth result:
+
+    * The stroke core is only 2-3 px tall, so taking the median row of a run
+      quantizes the trace to whole pixels. At 50 dB over 572 px that is 0.087 dB
+      per step, which shows up as a stair-step in the output. Instead the centre
+      is the intensity-weighted centroid of the stroke cross-section, which is
+      sub-pixel (roughly 900 distinct values over 1300 columns instead of 370).
+    * A soft weight (redness relative to grey) is used rather than a hard colour
+      threshold, so the antialiased edges contribute proportionally and do not
+      flicker in and out of the mask.
+    """
+    a = np.array(Image.open(chart_path(name)).convert('RGB')).astype(float)
     h, w, _ = a.shape
     r, g, b = a[:, :, 0], a[:, :, 1], a[:, :, 2]
 
-    # The JT7 stroke is red/crimson. Rejects the magenta target curve (high blue)
-    # and the green comparison curve.
-    red = (r > 110) & (r - g > 45) & (r - b > 30)
+    # Redness: how far a pixel is from neutral grey toward the crimson stroke.
+    # The magenta target curve and the green comparison curve both have high blue
+    # and are suppressed explicitly.
+    weight = np.clip((r - (g + b) / 2.0) / 150.0, 0.0, 1.0)
+    weight[(g > 95) & (b > 95)] = 0.0
 
     yy, xx = np.mgrid[0:h, 0:w]
     inside = (xx >= x0 + 1) & (xx <= x1 - 1) & (yy >= y0 + 2) & (yy <= y1 - 1)
     # Legend swatches sit top-right inside the plot box and are the same red; if
     # they are not removed the tracker latches onto them.
     legend = (xx >= x1 - 415) & (yy <= y0 + 138)
-    red &= inside & ~legend
+    weight *= (inside & ~legend)
 
     px_per_decade = (x1 - x0) / 3.0
     x_at_20hz = x0 - px_per_decade * np.log10(FMIN)
@@ -81,21 +95,37 @@ def trace_red(name, x0, x1, y0, y1):
     def db_of(y):
         return 25.0 - (y - y0) * 50.0 / (y1 - y0)
 
-    # Follow the stroke left to right, picking the run nearest the previous
-    # column so near-vertical stretches and crossings do not derail it.
+    rows = np.arange(h, dtype=float)
     pts, prev = {}, None
     for x in range(x0 + 1, x1):
-        if not red[:, x].any():
+        col = weight[:, x]
+        if col.sum() < 0.2:
             continue
-        runs = runs_of(np.nonzero(red[:, x])[0])
+        # Locate the stroke runs so a comparison curve crossing this column can be
+        # told apart from the JT7 trace.
+        core = np.nonzero(col > 0.35)[0]
+        if not len(core):
+            core = np.nonzero(col > 0.1)[0]
+        if not len(core):
+            continue
+        runs = runs_of(core)
         if prev is None:
             run = max(runs, key=len)
         else:
             run = min(runs, key=lambda rr: abs(np.median(rr) - prev))
             if abs(np.median(run) - prev) > 45:
                 continue
-        prev = float(np.median(run))
-        pts[x] = prev
+
+        # Weighted centroid over the chosen run plus two pixels of antialiased
+        # skirt, so the value is continuous rather than quantized to a row.
+        lo = max(run[0] - 2, 0)
+        hi = min(run[-1] + 3, h)
+        seg = col[lo:hi]
+        if seg.sum() < 0.2:
+            continue
+        centre = float((seg * rows[lo:hi]).sum() / seg.sum())
+        prev = centre
+        pts[x] = centre
 
     xs = np.array(sorted(pts), float)
     f = 10 ** ((xs - x_at_20hz) / px_per_decade)
@@ -105,8 +135,16 @@ def trace_red(name, x0, x1, y0, y1):
 
 
 def smooth_log(lg, d, frac):
-    """Gaussian smoothing with constant fractional-octave bandwidth."""
+    """Gaussian smoothing with constant fractional-octave bandwidth.
+
+    The kernel is never allowed to be narrower than a few source columns, because
+    the source is a raster: below that width the smoothing would leave the
+    per-column reading noise visible instead of averaging it out.
+    """
     sigma = (1.0 / frac) / 2.355
+    if len(lg) > 1:
+        step = np.median(np.diff(lg))
+        sigma = max(sigma, 2.5 * step)
     out = np.empty_like(d)
     for i, x in enumerate(lg):
         w = np.exp(-0.5 * ((lg - x) / sigma) ** 2)
